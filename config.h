@@ -3,21 +3,15 @@
 10.02.2020
 *************************************************************************/
 
-#include "main.h"
+#ifndef _CONFIG_H_
+#define _CONFIG_H_
 
 
-int main()
-{
-	
-	Initialize_CLK(); 
-	Initialize_GPIO();
-	Initialize_ExtBus();
+#include <MDR32F9Qx_config.h>
 
-//	Initialize_5600VG1U_parallel();
-//	Initialize_ethernet();
-	
-	while(1)
-	{
-//		Polling_Ethernet();
-	}
-}
+void Initialize_CLK(void);
+void Initialize_SPI1(void);
+void Initialize_GPIO(void);
+void Initialize_ExtBus(void);
+
+#endif
