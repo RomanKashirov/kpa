@@ -10,8 +10,7 @@
 #include <MDR32F9Qx_config.h>
 
 void Initialize_CLK(void);
-void Initialize_SPI1(void);
 void Initialize_GPIO(void);
 void Initialize_ExtBus(void);
 
-#endif
+#endif /* _CONFIG_H_ */
