@@ -13,7 +13,7 @@ int main()
 	Initialize_GPIO();
 	Initialize_ExtBus();
 
-//	Initialize_5600VG1U_parallel();
+	Initialize_5600VG1U_parallel();
 //	Initialize_ethernet();
 	
 	while(1)

@@ -66,6 +66,7 @@ typedef struct
 #define TxBuffer              ((unsigned int *)BASE_ETH_TXBuffer)
 #define TxDescriptor          ((unsigned int *)BASE_ETH_TXDescBuffer)
 
+void Initialize_5600VG1U_parallel(void);
 
 #endif /* _5600VG1U_PBUS_H_ */
 

@@ -6,7 +6,7 @@
 #define _MAIN_H_
 
 #include "config.h"
-//#include "5600VG1U_serial.h"
+#include "5600VG1U_pbus.h"
 //#include "ethernet.h"
 #include <MDR32F9Qx_port.h>
 
