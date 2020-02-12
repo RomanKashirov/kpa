@@ -68,6 +68,10 @@ typedef struct
 
 void Initialize_5600VG1U_parallel(void);
 
+#ifdef TEST
+		int get_sample_reg(void);
+#endif
+
 #endif /* _5600VG1U_PBUS_H_ */
 
 

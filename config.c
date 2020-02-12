@@ -5,6 +5,10 @@
 
 
 #include "config.h"
+#ifdef TEST
+
+extern int port_sample;
+#endif
 
 
 
@@ -42,7 +46,7 @@ void Initialize_CLK(void)
 // Инициализация портов ввода-вывода
 void Initialize_GPIO(void)
 {
-	MDR_RST_CLK->PER_CLOCK |= (1<<21)|(1<<22)|(1<<23)|(1<<24)|(1<<29); // Разрешение тактирования портов A, B, C, D, F
+	MDR_RST_CLK->PER_CLOCK = 0x63E00018;//|= (1<<21)|(1<<22)|(1<<23)|(1<<24)|(1<<29); // Разрешение тактирования портов A, B, C, D, F
 
 	//Выводы под внешнюю шину
 	//Шина данных[0:15] на PORTA
@@ -53,7 +57,7 @@ void Initialize_GPIO(void)
 	//OE, WE на PC1, PC2
 	MDR_PORTC->ANALOG |= (1<<1)|(1<<2); // Цифровой режим PC1, PC2
 	MDR_PORTC->PWR |= 0x28; // 10 – быстрый фронт (порядка 20 нс) 
-	MDR_PORTC->FUNC |= 0x00000014; // Настройка PC1, PC2 порта на 01 – основная функция 
+//	MDR_PORTC->FUNC |= 0x00000014; // Настройка PC1, PC2 порта на 01 – основная функция 
 	
 	//CS на PC0
 	MDR_PORTC->ANALOG |= (1<<0); // Цифровой режим PC0
@@ -67,9 +71,17 @@ void Initialize_GPIO(void)
 	MDR_PORTF->FUNC |= 0x15555550; // Настройка PF2-PF14 порта на  01 – основная функция 
 	
 	//Настройка вывода сброса 5600ВГ1У - nRST на PB11
-	MDR_PORTB->RXTX = (1<<11)|(MDR_PORTB->RXTX & 0xFFE0); //В ножки JTAG нельзя писать единицы, при записи в порт всегда делайте маску и сбрасывайте все биты JTAG в ноль
+	MDR_PORTB->RXTX &= ~((1<<11)|0x001F);
 	MDR_PORTB->OE |= (1<<11);  //PB11 - выход
 	MDR_PORTB->FUNC &= 0xFF3FFFFF; //PB11 - порт ввода-вывода
+	MDR_PORTB->ANALOG |= (1<<11); //Цифровой режим работы вывода PB11
+	MDR_PORTB->PWR &= 0xFF3FFFFF;
+	MDR_PORTB->PWR |= 0x400000;
+	
+	
+	MDR_PORTB->RXTX = (1<<11)|(MDR_PORTB->RXTX & 0xFFE0);
+	
+	
 	
 	//Светодиоды
 	// Сброс битов 10-14 PORTD

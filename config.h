@@ -8,6 +8,7 @@
 
 
 #include <MDR32F9Qx_config.h>
+#include <MDR32F9Qx_port.h>
 
 void Initialize_CLK(void);
 void Initialize_GPIO(void);
