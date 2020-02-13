@@ -175,3 +175,43 @@ int Ready_Rx_Descriptor(_rx_descriptor* RxDesc)
         return 0;
 }
 
+//Функция для подготовки дескрипторов передатчика к отправке пакетов
+//Параметр:	PacketLen - размер пакета в байтах,
+//			TxCurrentDesc - указатель на текущий дескриптор отправляемых пакетов
+//Возвращаемых значений нет
+//--------------------------------------------------------------------------------------
+int Write_Tx_Descriptor(unsigned short PacketLen, _tx_current_descriptor* TxCurrentDesc)
+{
+	unsigned int* MyDesc;
+	MyDesc = (unsigned int*)(TxCurrentDesc->TxCurrentDescriptor->StartAddress);
+
+	*(MyDesc+1) = PacketLen;
+	*(MyDesc+3) = (TxCurrentDesc->FirstEmptyWord>>2)&0x0000FFFF;
+
+	if(TxCurrentDesc->TxCurrentDescriptor->LastDesc == 1) *MyDesc = 0xC000;
+	else *MyDesc = 0x8000;
+
+	TxCurrentDesc->FirstEmptyWord += (PacketLen/2)<<2;	//адрес первого свободного 16-разрядного слова в буфере
+												//сдвг PacketLen на 1 разряд, так как в передаваемом пакете
+												//необходимо указывать размер в байтах, а в буфере - 16-разрядные слова!
+	if(TxCurrentDesc->FirstEmptyWord > 0x60005FFC)
+	{
+		TxCurrentDesc->FirstEmptyWord -= 0x00006000;
+		TxCurrentDesc->FirstEmptyWord |= 0x60004000;
+	}
+    return 0;
+}
+
+//--------------------------------------------------------------------------------------
+//Функция для определения статуса отправляемого пакета
+//Параметр:	TxDesc - указатель на дескриптор отправляемых пакетов
+//Возвращает:	1 - пакет не отправлен
+//				0 - пакет отправлен 
+//--------------------------------------------------------------------------------------
+unsigned short Read_Tx_Descriptor(_tx_descriptor* TxDesc)
+{
+		unsigned int* MyDesc;
+		MyDesc = (unsigned int*)(TxDesc->StartAddress);
+        if((*MyDesc & 0x8000) == 0x8000) return 1;            //пакет не отправлен
+        else return 0;                                              //пакет отправлен
+}

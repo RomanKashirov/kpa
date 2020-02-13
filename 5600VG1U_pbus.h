@@ -117,6 +117,8 @@ unsigned short Read_Rx_Descriptor(_rx_descriptor* RxDesc);
 unsigned short Read_Packet_Length(_rx_descriptor* RxDesc);
 unsigned short Read_Packet_Start_Address(_rx_descriptor* RxDesc);
 int Ready_Rx_Descriptor(_rx_descriptor* RxDesc);
+int Write_Tx_Descriptor(unsigned short PacketLen, _tx_current_descriptor* TxCurrentDesc);
+unsigned short Read_Tx_Descriptor(_tx_descriptor* TxDesc);
 
 #ifdef TEST
 		int get_sample_reg(void);
