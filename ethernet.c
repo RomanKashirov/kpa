@@ -57,10 +57,6 @@ void Polling_Ethernet(void)
 
 		TypeOfProtocol = (Packet.Data[12]<<8)|Packet.Data[13];
 
-		
-	
-		
-		
 		switch(TypeOfProtocol) //0x0006 //слова в памяти разбиты по 2 байта! (считывать массив кратный 2 байтам!)
     {
 					//Если принят ARP-пакет
@@ -113,13 +109,13 @@ int Read_Packet(_ethernet_packet* Dt)
 int Answear_ARP(_ethernet_packet* Dt)
 {
 	Receive_IP[0] = Packet.Data[38];
-                                        Receive_IP[1] = Packet.Data[39];
-                                        Receive_IP[2] = Packet.Data[40];
-                                        Receive_IP[3] = Packet.Data[41];
+  Receive_IP[1] = Packet.Data[39];
+  Receive_IP[2] = Packet.Data[40];
+  Receive_IP[3] = Packet.Data[41];
 
-                                        if( (Receive_IP[0] == My_IP[0])&&(Receive_IP[1] == My_IP[1])&&(Receive_IP[2] == My_IP[2])&&(Receive_IP[3] == My_IP[3]))         //полное совпадение IP в пакете и нашего. Надо отвечать
-                                        {
-                                                        Packet.Remote_IP[0] = Packet.Data[28];
+  if( (Receive_IP[0] == My_IP[0])&&(Receive_IP[1] == My_IP[1])&&(Receive_IP[2] == My_IP[2])&&(Receive_IP[3] == My_IP[3]))         //полное совпадение IP в пакете и нашего. Надо отвечать
+  {
+		Packet.Remote_IP[0] = Packet.Data[28];
                                                         Packet.Remote_IP[1] = Packet.Data[29];
                                                         Packet.Remote_IP[2] = Packet.Data[30];
                                                         Packet.Remote_IP[3] = Packet.Data[31];
