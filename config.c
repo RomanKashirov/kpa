@@ -72,6 +72,20 @@ void Initialize_GPIO(void)
 	MDR_PORTB->PWR &= 0xFF3FFFFF;
 	MDR_PORTB->PWR |= 0x400000;
 	
+#if defined _1986_EVB_
+	MDR_PORTE->ANALOG = 0xFFFF; // CS
+	MDR_PORTE->PWR = 0xAAAAAAAA; // CS
+	MDR_PORTE->FUNC = 0x01000000; // CS
+#elif defined _6115_160_
+	//Настройка вывода сброса 5600ВГ1У - CS на PC0
+	MDR_PORTC->RXTX &= ~((1<<0)|0x001F); // CS
+	MDR_PORTC->OE |= (1<<0);  //PC0 - выход
+	MDR_PORTC->FUNC &= 0xFFFFFFFC; //PC0 - порт ввода-вывода
+	MDR_PORTC->ANALOG |= (1<<0); //Цифровой режим работы вывода PC0
+	MDR_PORTC->PWR &= 0xFFFFFFFC;
+	MDR_PORTC->PWR |= 0x1;
+#endif
+
 	MDR_PORTE->ANALOG = 0xFFFF; // CS
 	MDR_PORTE->PWR = 0xAAAAAAAA; // CS
 	MDR_PORTE->FUNC = 0x01000000; // CS
