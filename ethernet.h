@@ -2,9 +2,11 @@
 Подключение 1986ВЕ91Т к Ethernet с помощью 5600ВГ1У. Интерфейс параллельный.
 10.02.2020
 *************************************************************************/
+
 #ifndef _ETHERNET_H_
 #define _ETHERNET_H_
+#include "5600VG1U_pbus.h"
 
-
+void Polling_Ethernet(void);
 
 #endif /* _ETHERNET_H_ */

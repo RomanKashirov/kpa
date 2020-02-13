@@ -4,7 +4,7 @@
 *************************************************************************/
 
 #include "main.h"
-#include <MDR32F9Qx_port.h>
+
 
 #ifdef TEST
 int reg_sample;
@@ -25,8 +25,8 @@ int main()
 //	Initialize_ethernet();
 	#ifdef TEST
 	MDR_PORTD->RXTX = (1<<11)|(MDR_PORTD->RXTX & 0xFFE0);
-		reg_sample = get_sample_reg();
-	if(reg_sample == 0x5F4E)
+		
+	if(get_sample_reg() == 0x5F4E)
 	{
 		SET_LED5();
 	}
@@ -37,6 +37,6 @@ int main()
 		
 	
 	
-//		Polling_Ethernet();
+		Polling_Ethernet();
 	}
 }

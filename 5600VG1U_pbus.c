@@ -4,46 +4,6 @@
 *************************************************************************/
 #include "5600VG1U_pbus.h"
 
-#define NUMRXDESCRIPTOR	16	//количество дескрипротов принимаемых пакетов (минимум 1, максимум 32)
-#define NUMTXDESCRIPTOR	16	//количество дескрипротов отправляемых пакетов (минимум 1, максимум 32)
-//Структура для дескриптора принимаемых пакетов
-typedef struct
-{
-	unsigned int	StartAddress;			//начальный адрес дескриптора в памяти контроллера 1986ВЕ91Т1
-	unsigned short	Status;					//стату дескриптора
-	unsigned short	PacketLength;			//длина принятого пакета
-	unsigned short	PacketStartAddressH;	//адрес в буфере, где расположен первый байт пакета (старшая часть, всегда 0х0000)
-	unsigned short	PacketStartAddressL;	//адрес в буфере, где расположен первый байт пакета (младшая часть)
-	unsigned short	LastDesc;				//признак последнего дескриптора (1 - последний дескриптор, 0 - не последний дескриптор)
-} _rx_descriptor;
-
-//Структура для работы с текущим дескриптором принимаемых пакетов
-typedef struct
-{
-	_rx_descriptor* RxCurrentDescriptor;	//указатель на текущий дескриптор принимаемых пакетов
-	unsigned short Number;					//номер текущего дескриптора (принимает значения от 0 до NUMRXDESCRIPTOR-1)
-} _rx_current_descriptor;
-
-//Структура для дескриптора отправляемых пакетов
-typedef struct
-{
-	unsigned int	StartAddress;			//начальный адрес дескриптора в памяти контроллера 1986ВЕ91Т1
-	unsigned short	Status;					//стату дескриптора
-	unsigned short	PacketLength;			//длина принятого пакета
-	unsigned short	PacketStartAddressH;	//адрес в буфере, где расположен первый байт пакета (старшая часть, всегда 0х0000)
-	unsigned short	PacketStartAddressL;	//адрес в буфере, где расположен первый байт пакета (младшая часть)
-	unsigned short	LastDesc;				//признак последнего дескриптора (1 - последний дескриптор, 0 - не последний дескриптор)
-} _tx_descriptor;
-
-//Структура для работы с текущим дескриптором отпарвляемых пакетов
-typedef struct
-{
-	_tx_descriptor* TxCurrentDescriptor;	//указатель на текущий дескриптор отправляемых пакетов
-	unsigned short Number;					//номер текущего дескриптора (принимает значения от 0 до NUMTXDESCRIPTOR-1)
-	unsigned int FirstEmptyWord;			//адрес первого свободного слова в буфере передатчика
-} _tx_current_descriptor;
-
-
 //массив дескрипторов отправляемых пакетов
 _tx_descriptor ATxDescriptor[32] =  {{0x60006000,0x2000,0,0,0,0},{0x60006010,0x2000,0,0,0,0},{0x60006020,0x2000,0,0,0,0},{0x60006030,0x2000,0,0,0,0},
 									 {0x60006040,0x2000,0,0,0,0},{0x60006050,0x2000,0,0,0,0},{0x60006060,0x2000,0,0,0,0},{0x60006070,0x2000,0,0,0,0},
@@ -65,9 +25,8 @@ _rx_descriptor	ARxDescriptor[32] = {{0x60002000,0xA000,0,0,0,0},{0x60002010,0xA0
 									 {0x600021C0,0xA000,0,0,0,0},{0x600021D0,0xA000,0,0,0,0},{0x600021E0,0xA000,0,0,0,0},{0x600021F0,0xE000,0,0,0,1}};
 
 _tx_current_descriptor TxCurrentDesc;	//экземпляр структуры _tx_current_descriptor
-_rx_current_descriptor RxCurrentDesc;	//экземпляр структуры _rx_current_descriptor
-
-
+_rx_current_descriptor RxCurrentDesc;	//экземпляр структуры _rx_current_descriptor 
+										 
 _ethernet* MyEth;
 void EthCfg(void);  //функция конфигурирования контроллера 5600ВГ1У
 void InitTxDescriptor(void);						// функция инициализации дескрипторов отправляемых пакетов
@@ -81,6 +40,7 @@ int get_sample_reg(void)
 
 void Initialize_5600VG1U_parallel(void)
 {
+	MDR_PORTB->RXTX = (1<<11)|(MDR_PORTB->RXTX & 0xFFE0); // Снятие сброса
 	MyEth = Ethernet;
 	EthCfg();
 	InitTxDescriptor();	
@@ -162,5 +122,56 @@ void InitRxDescriptor()
 }
 
 
+//--------------------------------------------------------------------------------------
+//Функция для определения наличия принятого пакета
+//Параметр:	RxDesc - указатель на дескриптор принимаемых пакетов
+//Возвращает:	1 - пакет не принят
+//				0 - пакет принят
+//--------------------------------------------------------------------------------------
+unsigned short Read_Rx_Descriptor(_rx_descriptor* RxDesc)
+{
+		unsigned int* RDescPointer;
+		RDescPointer = (unsigned int*)RxDesc->StartAddress;
+        if( (*RDescPointer & 0x8000) == 0x8000) return 1;	
+        else return 0;                                      
+}
 
+//--------------------------------------------------------------------------------------
+//Функция для получения размера приянтого пакета
+//Параметр:	RxDesc - указатель на дескриптор принимаемых пакетов
+//Возвращает:	размер пакета в байтах
+//--------------------------------------------------------------------------------------
+unsigned short Read_Packet_Length(_rx_descriptor* RxDesc)
+{
+		unsigned int* RDescPointer;
+		RDescPointer = (unsigned int*)(RxDesc->StartAddress + 4);		//получим адрес длины пакета
+        return (unsigned short)(*RDescPointer);       //Temp;
+}
+
+
+//--------------------------------------------------------------------------------------
+//Функция для получения адреса, по которому расположен пакета в буфере приемника
+//Параметр:	RxDesc - указатель на дескриптор принимаемых пакетов
+//Возвращает:	адрес пакета в буфере
+//--------------------------------------------------------------------------------------
+unsigned short Read_Packet_Start_Address(_rx_descriptor* RxDesc)
+{
+        unsigned int* RDescPointer;
+		RDescPointer = (unsigned int*)(RxDesc->StartAddress + 12);	//получим адрес стартового адреса пакета
+        return (unsigned short)(*RDescPointer);
+}
+
+//--------------------------------------------------------------------------------------
+//Функция для установки признака готовности к приему пакета дескриптором принимаемых пакетв
+//Параметр:	RxDesc - указатель на дескриптор принимаемых пакетов
+//Возвращает:	0
+//--------------------------------------------------------------------------------------
+int Ready_Rx_Descriptor(_rx_descriptor* RxDesc)
+{
+		unsigned int* MyDesc;
+		MyDesc = (unsigned int*)(RxDesc->StartAddress);
+		if(RxDesc->LastDesc == 1) *MyDesc = 0xC000;	//установка готовности дескриптора к приему пакета
+		else *MyDesc = 0x8000;						//установка готовности дескриптора к приему пакета
+        return 0;
+}
 

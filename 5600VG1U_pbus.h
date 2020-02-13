@@ -2,6 +2,7 @@
 Подключение 1986ВЕ91Т к Ethernet с помощью 5600ВГ1У. Интерфейс параллельный.
 10.02.2020
 *************************************************************************/
+#include <MDR32F9Qx_port.h>
 #ifndef _5600VG1U_PBUS_H_
 #define _5600VG1U_PBUS_H_
 
@@ -65,8 +66,57 @@ typedef struct
 
 #define TxBuffer              ((unsigned int *)BASE_ETH_TXBuffer)
 #define TxDescriptor          ((unsigned int *)BASE_ETH_TXDescBuffer)
+	
+
+#define NUMRXDESCRIPTOR	16	//количество дескрипротов принимаемых пакетов (минимум 1, максимум 32)
+#define NUMTXDESCRIPTOR	16	//количество дескрипротов отправляемых пакетов (минимум 1, максимум 32)
+//Структура для дескриптора принимаемых пакетов
+typedef struct
+{
+	unsigned int	StartAddress;			//начальный адрес дескриптора в памяти контроллера 1986ВЕ91Т1
+	unsigned short	Status;					//стату дескриптора
+	unsigned short	PacketLength;			//длина принятого пакета
+	unsigned short	PacketStartAddressH;	//адрес в буфере, где расположен первый байт пакета (старшая часть, всегда 0х0000)
+	unsigned short	PacketStartAddressL;	//адрес в буфере, где расположен первый байт пакета (младшая часть)
+	unsigned short	LastDesc;				//признак последнего дескриптора (1 - последний дескриптор, 0 - не последний дескриптор)
+} _rx_descriptor;
+
+//Структура для работы с текущим дескриптором принимаемых пакетов
+typedef struct
+{
+	_rx_descriptor* RxCurrentDescriptor;	//указатель на текущий дескриптор принимаемых пакетов
+	unsigned short Number;					//номер текущего дескриптора (принимает значения от 0 до NUMRXDESCRIPTOR-1)
+} _rx_current_descriptor;
+
+//Структура для дескриптора отправляемых пакетов
+typedef struct
+{
+	unsigned int	StartAddress;			//начальный адрес дескриптора в памяти контроллера 1986ВЕ91Т1
+	unsigned short	Status;					//стату дескриптора
+	unsigned short	PacketLength;			//длина принятого пакета
+	unsigned short	PacketStartAddressH;	//адрес в буфере, где расположен первый байт пакета (старшая часть, всегда 0х0000)
+	unsigned short	PacketStartAddressL;	//адрес в буфере, где расположен первый байт пакета (младшая часть)
+	unsigned short	LastDesc;				//признак последнего дескриптора (1 - последний дескриптор, 0 - не последний дескриптор)
+} _tx_descriptor;
+
+//Структура для работы с текущим дескриптором отпарвляемых пакетов
+typedef struct
+{
+	_tx_descriptor* TxCurrentDescriptor;	//указатель на текущий дескриптор отправляемых пакетов
+	unsigned short Number;					//номер текущего дескриптора (принимает значения от 0 до NUMTXDESCRIPTOR-1)
+	unsigned int FirstEmptyWord;			//адрес первого свободного слова в буфере передатчика
+} _tx_current_descriptor;
+
+
+
+
+
 
 void Initialize_5600VG1U_parallel(void);
+unsigned short Read_Rx_Descriptor(_rx_descriptor* RxDesc);
+unsigned short Read_Packet_Length(_rx_descriptor* RxDesc);
+unsigned short Read_Packet_Start_Address(_rx_descriptor* RxDesc);
+int Ready_Rx_Descriptor(_rx_descriptor* RxDesc);
 
 #ifdef TEST
 		int get_sample_reg(void);
