@@ -76,7 +76,7 @@ void InitRxDescriptor(void);						// функция инициализации �
 
 int get_sample_reg(void)
 {
-	return Ethernet->GCTRL;
+	return Ethernet->MAC_ADDR_H;
 }
 
 void Initialize_5600VG1U_parallel(void)

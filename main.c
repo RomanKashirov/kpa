@@ -17,22 +17,26 @@ int main()
 	
 	Initialize_CLK(); 
 	Initialize_GPIO();
-	PORT_SetBits(MDR_PORTB, PORT_Pin_11);
+	
+	
 	Initialize_ExtBus();
 
 	Initialize_5600VG1U_parallel();
 //	Initialize_ethernet();
 	#ifdef TEST
+	MDR_PORTD->RXTX = (1<<11)|(MDR_PORTD->RXTX & 0xFFE0);
 		reg_sample = get_sample_reg();
-		port_sample = MDR_PORTB->RXTX;
+	if(reg_sample == 0x5F4E)
+	{
+		SET_LED5();
+	}
 		#endif
 	
 	while(1)
 	{
 		
-	SET_LED5();
-		port_sample++;
-		PORT_SetBits(MDR_PORTB, PORT_Pin_11);
+	
+	
 //		Polling_Ethernet();
 	}
 }

@@ -23,7 +23,7 @@ void Initialize_CLK(void)
 	//При выходе в нормальный режим работы устанавливается бит  HSERDY в регистре CLOCK_STATUS.
 	while((MDR_RST_CLK->CLOCK_STATUS&0x00000004)!=0x00000004){}
 	
-	MDR_RST_CLK->PLL_CONTROL = 0x00000904; //Включение схемы PLL и установка коэффициента умножения PLL K_mul = 9+1 (clk = 80 MHz)
+	MDR_RST_CLK->PLL_CONTROL = 0x00000704; //Включение схемы PLL и установка коэффициента умножения PLL K_mul = 9+1 (clk = 80 MHz)
 	while((MDR_RST_CLK->CLOCK_STATUS & 0x00000002) != 0x00000002){} //Ожидание включения PLL
 					
 	/*Скорость  доступа  во  Flash-память  ограничена  и  составляет  порядка  40  нс,  в  результате 
@@ -39,6 +39,7 @@ void Initialize_CLK(void)
 	/*Выбор источника для CPU_C1 – HSE, выбор источника для CPU_C2 – PLLCPUo, выбор делителя CPU_C3 = CPU_C2,
 	выбор источника для HCLK – CPU_C3*/
 	MDR_RST_CLK->CPU_CLOCK = 0x00000106;
+		MDR_RST_CLK->PER_CLOCK |= (1<<25)|(1<<21)|(1<<22)|(1<<23)|(1<<24)|(1<<29)|(1<<30); // Разрешение тактирования портов A, B, C, D, F
 }
 
 
@@ -46,7 +47,7 @@ void Initialize_CLK(void)
 // Инициализация портов ввода-вывода
 void Initialize_GPIO(void)
 {
-	MDR_RST_CLK->PER_CLOCK = 0x63E00018;//|= (1<<21)|(1<<22)|(1<<23)|(1<<24)|(1<<29); // Разрешение тактирования портов A, B, C, D, F
+	
 
 	//Выводы под внешнюю шину
 	//Шина данных[0:15] на PORTA
@@ -57,7 +58,7 @@ void Initialize_GPIO(void)
 	//OE, WE на PC1, PC2
 	MDR_PORTC->ANALOG |= (1<<1)|(1<<2); // Цифровой режим PC1, PC2
 	MDR_PORTC->PWR |= 0x28; // 10 – быстрый фронт (порядка 20 нс) 
-//	MDR_PORTC->FUNC |= 0x00000014; // Настройка PC1, PC2 порта на 01 – основная функция 
+	MDR_PORTC->FUNC |= 0x00000014; // Настройка PC1, PC2 порта на 01 – основная функция 
 	
 	//CS на PC0
 	MDR_PORTC->ANALOG |= (1<<0); // Цифровой режим PC0
@@ -81,7 +82,11 @@ void Initialize_GPIO(void)
 	
 	MDR_PORTB->RXTX = (1<<11)|(MDR_PORTB->RXTX & 0xFFE0);
 	
-	
+	MDR_PORTE->ANALOG = 0xFFFF; // CS
+		MDR_PORTE->PWR = 0xAAAAAAAA; // CS
+		MDR_PORTE->RXTX = 0x0000;
+		MDR_PORTE->OE = 0x0030;
+		MDR_PORTE->FUNC = 0x01000000; // CS
 	
 	//Светодиоды
 	// Сброс битов 10-14 PORTD
@@ -97,6 +102,6 @@ void Initialize_GPIO(void)
 //Функция для настройки внешней системной шины
 __inline void Initialize_ExtBus()
 {
-	MDR_EBC->CONTROL = 0x2002;  //wait state=0 (3 HCLK), RAM mode
+	MDR_EBC->CONTROL = 0xF002;  //wait state=0 (3 HCLK), RAM mode
 }
 
