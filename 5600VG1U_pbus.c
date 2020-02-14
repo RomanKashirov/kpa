@@ -40,7 +40,7 @@ int get_sample_reg(void)
 
 void Initialize_5600VG1U_parallel(void)
 {
-	MDR_PORTB->RXTX = (1<<11)|(MDR_PORTB->RXTX & 0xFFE0); // Снятие сброса
+	//MDR_PORTB->RXTX = (1<<11)|(MDR_PORTB->RXTX & 0xFFE0); // Снятие сброса
 	MyEth = Ethernet;
 	EthCfg();
 	InitTxDescriptor();	

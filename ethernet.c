@@ -17,8 +17,9 @@
 extern _rx_current_descriptor RxCurrentDesc;	//экземпляр структуры _rx_current_descriptor
 extern _tx_current_descriptor TxCurrentDesc;	//экземпляр структуры _tx_current_descriptor
 extern _tx_descriptor ATxDescriptor[32];
+extern _rx_descriptor	ARxDescriptor[32];
 
-
+unsigned char ICMP_Packet[1500];  		//буфер для формирования ответного ICMP-пакета.
 
 //Структура для работы с принятыми Ethernet-пакетами
 typedef struct
@@ -55,39 +56,103 @@ int Answear_ICMP(_ethernet_packet* Dt, unsigned char* );
 
 void Polling_Ethernet(void)
 {
-	if(Read_Rx_Descriptor(RxCurrentDesc.RxCurrentDescriptor) == 0) //проверка наличия принятого пакета
-	{
-		SET_LED2(); //LED2 - Принят пакет с нашим или широковещательным адресом
-		Packet.Length = Read_Packet_Length(RxCurrentDesc.RxCurrentDescriptor);
-    Packet.Address = Read_Packet_Start_Address(RxCurrentDesc.RxCurrentDescriptor);
-    Read_Packet(&Packet);				   //считали полученный пакет
+	               if(Read_Rx_Descriptor(RxCurrentDesc.RxCurrentDescriptor) == 0) //проверка наличия принятого пакета
+                {
+                //        PORTD->RXTX |= 1 << 11;
 
-		Ready_Rx_Descriptor(RxCurrentDesc.RxCurrentDescriptor);
+                        Packet.Length = Read_Packet_Length(RxCurrentDesc.RxCurrentDescriptor);
+                        Packet.Address = Read_Packet_Start_Address(RxCurrentDesc.RxCurrentDescriptor);
+                        Read_Packet(&Packet);				   //считали полученный пакет
+
+						Ready_Rx_Descriptor(RxCurrentDesc.RxCurrentDescriptor);
 
 #if	PRINTSTATUSON
-		Packet.CounterRxPacket++;
+						Packet.CounterRxPacket++;
 #endif	//PRINTSTATUSON						
 
-		Ethernet->RXBF_HEAD = (Ethernet->RXBF_TAIL-1)&0x07FF;
+						Ethernet->RXBF_HEAD = (Ethernet->RXBF_TAIL-1)&0x07FF;
 
-		TypeOfProtocol = (Packet.Data[12]<<8)|Packet.Data[13];
+                        TypeOfProtocol = (Packet.Data[12]<<8)|Packet.Data[13];
 
-		switch(TypeOfProtocol) //0x0006 //слова в памяти разбиты по 2 байта! (считывать массив кратный 2 байтам!)
-    {
-					//Если принят ARP-пакет
-			case 0x0806:
-				Answear_ARP(&Packet);
-				break;
-			
-			//Если принят IP-пакет
-			case 0x0800:
-				Answear_IP(&Packet);
-				break;
-			
-			default:
-				break;
-		}
-	}
+                        switch(TypeOfProtocol) //0x0006 //слова в памяти разбиты по 2 байта! (считывать массив кратный 2 байтам!)
+                        {
+                                case 0x0806:    //receive ARP-packet
+                                        Receive_IP[0] = Packet.Data[38];
+                                        Receive_IP[1] = Packet.Data[39];
+                                        Receive_IP[2] = Packet.Data[40];
+                                        Receive_IP[3] = Packet.Data[41];
+
+                                        if( (Receive_IP[0] == My_IP[0])&&(Receive_IP[1] == My_IP[1])&&(Receive_IP[2] == My_IP[2])&&(Receive_IP[3] == My_IP[3]))         //полное совпадение IP в пакете и нашего. Надо отвечать
+                                        {
+                                                        Packet.Remote_IP[0] = Packet.Data[28];
+                                                        Packet.Remote_IP[1] = Packet.Data[29];
+                                                        Packet.Remote_IP[2] = Packet.Data[30];
+                                                        Packet.Remote_IP[3] = Packet.Data[31];
+
+                                                        Packet.Remote_MAC[0] = Packet.Data[22];
+                                                        Packet.Remote_MAC[1] = Packet.Data[23];
+                                                        Packet.Remote_MAC[2] = Packet.Data[24];
+                                                        Packet.Remote_MAC[3] = Packet.Data[25];
+                                                        Packet.Remote_MAC[4] = Packet.Data[26];
+                                                        Packet.Remote_MAC[5] = Packet.Data[27];
+
+                                                        Answear_ARP(&Packet);
+                                        }
+                           //             PORTD->RXTX &= 0xF7FF;
+                                        break;
+
+                                case 0x0800:    //receive IP-packet     //реализуем ICMP-протокол
+                                        Receive_IP[0] = Packet.Data[30];
+                                        Receive_IP[1] = Packet.Data[31];
+                                        Receive_IP[2] = Packet.Data[32];
+                                        Receive_IP[3] = Packet.Data[33];
+
+                                        if((Receive_IP[0] == My_IP[0])&&(Receive_IP[1] == My_IP[1])&&(Receive_IP[2] == My_IP[2])&&(Receive_IP[3] == My_IP[3]))  //получили IP-пакет с нашим IP адресом
+                                        {
+                                                       int Temp = CheckSum_IP(&Packet);
+                                                        if(Temp == ((Packet.Data[24] << 8)&0xFF00|Packet.Data[25]))  //если контрольная сумма IP-протокола пакета и вычисленная совпадают, то работаем дальше, иначе откидываем пакет
+                                                        {
+                                                                Packet.Remote_IP[0] = Packet.Data[26];
+                                                                Packet.Remote_IP[1] = Packet.Data[27];
+                                                                Packet.Remote_IP[2] = Packet.Data[28];
+                                                                Packet.Remote_IP[3] = Packet.Data[29];
+
+                                                                Packet.Remote_MAC[0] = Packet.Data[6];
+                                                                Packet.Remote_MAC[1] = Packet.Data[7];
+                                                                Packet.Remote_MAC[2] = Packet.Data[8];
+                                                                Packet.Remote_MAC[3] = Packet.Data[9];
+                                                                Packet.Remote_MAC[4] = Packet.Data[10];
+                                                                Packet.Remote_MAC[5] = Packet.Data[11];
+
+                                                                //проверить следующий протокол (ICMP)
+                                                                if(Packet.Data[23] == 0x01)     //далее следует ICMP-протокол
+                                                                {																			
+																		if(Packet.Data[34] == 0x08) //приняли echo request
+                                                                        {
+                                                                                Temp = CheckSum_ICMP(&Packet);
+                                                                                if(Temp == ((Packet.Data[36] << 8)&0xFF00|Packet.Data[37]))	//проверка совпадения контрольной суммы ICMP-пакета и вычисленной
+                                                                                {
+                                                                                        Answear_ICMP(&Packet, ICMP_Packet);
+                                                                                }
+                                                                        }
+                                                                }
+                                                        }
+                                        }
+                                     //   PORTD->RXTX &= 0xF7FF;
+                                        break;
+                        }
+                } //if(Read_Rx_Descriptor(RxCurrentDescriptor) == 0) //we receive Eth. packet
+               // PORTD->RXTX &= 0xF7FF;
+
+				//переход к следующему дескриптору
+				RxCurrentDesc.RxCurrentDescriptor++;
+				RxCurrentDesc.Number++;
+				if(RxCurrentDesc.Number == NUMRXDESCRIPTOR)
+				{
+					RxCurrentDesc.RxCurrentDescriptor = ARxDescriptor;
+					RxCurrentDesc.Number = 0;	
+				}
+        
 }
 
 //--------------------------------------------------------------------------------------
@@ -117,43 +182,7 @@ int Read_Packet(_ethernet_packet* Dt)
 }
 
 
-int Answear_IP(_ethernet_packet* Dt)
-{
-	Receive_IP[0] = Dt->Data[30];
-  Receive_IP[1] = Dt->Data[31];
-  Receive_IP[2] = Dt->Data[32];
-  Receive_IP[3] = Dt->Data[33];
 
-  if((Receive_IP[0] == My_IP[0])&&(Receive_IP[1] == My_IP[1])&&(Receive_IP[2] == My_IP[2])&&(Receive_IP[3] == My_IP[3]))  //получили IP-пакет с нашим IP адресом
-  {
-		int Temp = CheckSum_IP(Dt);
-    if(Temp == ((Dt->Data[24] << 8)&0xFF00|Dt->Data[25]))  //если контрольная сумма IP-протокола пакета и вычисленная совпадают, то работаем дальше, иначе откидываем пакет
-    {
-			SET_LED4();
-			Dt->Remote_IP[0] = Dt->Data[26];
-			Dt->Remote_IP[1] = Dt->Data[27];
-			Dt->Remote_IP[2] = Dt->Data[28];
-			Dt->Remote_IP[3] = Dt->Data[29];
-
-			Dt->Remote_MAC[0] = Dt->Data[6];
-			Dt->Remote_MAC[1] = Dt->Data[7];
-			Dt->Remote_MAC[2] = Dt->Data[8];
-			Dt->Remote_MAC[3] = Dt->Data[9];
-			Dt->Remote_MAC[4] = Dt->Data[10];
-			Dt->Remote_MAC[5] = Dt->Data[11];
-
-			//проверить следующий протокол (ICMP)
-			if(Dt->Data[23] == 0x01)     //далее следует ICMP-протокол
-			{																			
-				if(Dt->Data[34] == 0x08) //приняли echo request
-        {
-					Answear_ICMP(Dt, Answear_buffer);
-				}
-			}	
-		}
-	}
-	return 0;
-}
 
 //--------------------------------------------------------------------------------------
 //Функция для формирования ответа на ICMP-запрос
@@ -162,14 +191,10 @@ int Answear_IP(_ethernet_packet* Dt)
 //--------------------------------------------------------------------------------------
 int Answear_ICMP(_ethernet_packet* Dt, unsigned char* ICMP_Packet)
 {
-	int	Temp = CheckSum_ICMP(Dt);
-	if(Temp == ((Dt->Data[36] << 8)&0xFF00|Dt->Data[37]))	//проверка совпадения контрольной суммы ICMP-пакета и вычисленной
-	{
-		SET_LED5();
-		unsigned short Temp;
+	       unsigned short Temp;
 		unsigned int* MyPointer;
 
-    while(Read_Tx_Descriptor(TxCurrentDesc.TxCurrentDescriptor) != 0)
+        while(Read_Tx_Descriptor(TxCurrentDesc.TxCurrentDescriptor) != 0)
 		{
 			TxCurrentDesc.TxCurrentDescriptor++;
 			TxCurrentDesc.Number++;
@@ -181,87 +206,87 @@ int Answear_ICMP(_ethernet_packet* Dt, unsigned char* ICMP_Packet)
 		}
 		
         //Remote MAC-Address
-    ICMP_Packet[0] = Dt->Remote_MAC[0];
-    ICMP_Packet[1] = Dt->Remote_MAC[1];
-    ICMP_Packet[2] = Dt->Remote_MAC[2];
-    ICMP_Packet[3] = Dt->Remote_MAC[3];
-    ICMP_Packet[4] = Dt->Remote_MAC[4];
-    ICMP_Packet[5] = Dt->Remote_MAC[5];
+        ICMP_Packet[0] = Dt->Remote_MAC[0];
+        ICMP_Packet[1] = Dt->Remote_MAC[1];
+        ICMP_Packet[2] = Dt->Remote_MAC[2];
+        ICMP_Packet[3] = Dt->Remote_MAC[3];
+        ICMP_Packet[4] = Dt->Remote_MAC[4];
+        ICMP_Packet[5] = Dt->Remote_MAC[5];
 
         //My MAC-Address
-    ICMP_Packet[6] = My_MAC[0];
-    ICMP_Packet[7] = My_MAC[1];
-    ICMP_Packet[8] = My_MAC[2];
-    ICMP_Packet[9] = My_MAC[3];
-    ICMP_Packet[10] = My_MAC[4];
-    ICMP_Packet[11] = My_MAC[5];
+        ICMP_Packet[6] = My_MAC[0];
+        ICMP_Packet[7] = My_MAC[1];
+        ICMP_Packet[8] = My_MAC[2];
+        ICMP_Packet[9] = My_MAC[3];
+        ICMP_Packet[10] = My_MAC[4];
+        ICMP_Packet[11] = My_MAC[5];
 
         //IP-protocol
-    ICMP_Packet[12] = 0x08;
-    ICMP_Packet[13] = 0x00;
+        ICMP_Packet[12] = 0x08;
+        ICMP_Packet[13] = 0x00;
 //Закнчили формировать Eth2-пакет
 
 //Формируем IP-пакет
         //Field of IP-protocol
-    for(Temp = 14; Temp < 24; Temp++)
-    {
-			ICMP_Packet[Temp] = Dt->Data[Temp];
-    }
-		ICMP_Packet[26] = Dt->Data[30];
-    ICMP_Packet[27] = Dt->Data[31];
-    ICMP_Packet[28] = Dt->Data[32];
-    ICMP_Packet[29] = Dt->Data[33];
+        for(Temp = 14; Temp < 24; Temp++)
+        {
+                ICMP_Packet[Temp] = Dt->Data[Temp];
+        }
+        ICMP_Packet[26] = Dt->Data[30];
+        ICMP_Packet[27] = Dt->Data[31];
+        ICMP_Packet[28] = Dt->Data[32];
+        ICMP_Packet[29] = Dt->Data[33];
         //Remote IP
-    ICMP_Packet[30] = Dt->Data[26];
-    ICMP_Packet[31] = Dt->Data[27];
-    ICMP_Packet[32] = Dt->Data[28];
-    ICMP_Packet[33] = Dt->Data[29];
+        ICMP_Packet[30] = Dt->Data[26];
+        ICMP_Packet[31] = Dt->Data[27];
+        ICMP_Packet[32] = Dt->Data[28];
+        ICMP_Packet[33] = Dt->Data[29];
 
-    Temp = CheckSum_IP(Dt);
+        Temp = CheckSum_IP(Dt);
 
-       //IP CheckSum
-    ICMP_Packet[24] = (unsigned char)(Temp >> 8);
-    ICMP_Packet[25] = (unsigned char)Temp;
+        //IP CheckSum
+        ICMP_Packet[24] = (unsigned char)(Temp >> 8);
+        ICMP_Packet[25] = (unsigned char)Temp;
 
 //Закнчили формировать IP-пакет
 //Формируем ICMP-пакет
-    ICMP_Packet[34] = 0x00; //Echo reply
-    ICMP_Packet[35] = 0x00;
+        ICMP_Packet[34] = 0x00; //Echo reply
+        ICMP_Packet[35] = 0x00;
 
-    Dt->Data[34] = 0x00;
-    Dt->Data[35] = 0x00;
+        Dt->Data[34] = 0x00;
+        Dt->Data[35] = 0x00;
 
-    Temp = CheckSum_ICMP(Dt);
-    ICMP_Packet[36] = (unsigned char)(Temp >> 8);
-    ICMP_Packet[37] = (unsigned char)Temp;
+        Temp = CheckSum_ICMP(Dt);
+        ICMP_Packet[36] = (unsigned char)(Temp >> 8);
+        ICMP_Packet[37] = (unsigned char)Temp;
 
-    for(Temp = 38; Temp < Dt->Length - 4; Temp++)
-    {
-			ICMP_Packet[Temp] = Dt->Data[Temp];
-    }
+        for(Temp = 38; Temp < Dt->Length - 4; Temp++)
+        {
+                ICMP_Packet[Temp] = Dt->Data[Temp];
+        }
 
 		MyPointer = (unsigned int*)TxCurrentDesc.FirstEmptyWord;
 
-    if((Dt->Length & 0x0001) == 1)
-    {
-			ICMP_Packet[Dt->Length - 4] = Dt->Data[Dt->Length - 4];
-      for(Temp=0;Temp<Dt->Length - 3;Temp+=2)
-			{
-				*MyPointer++ = ICMP_Packet[Temp]|(ICMP_Packet[Temp+1]<<8);
-				if((unsigned int)MyPointer > 0x60005FFC) MyPointer = (unsigned int*)0x60004000;
-			}
-    }
-    else
-    {
-			for(Temp=0;Temp<Dt->Length - 4;Temp+=2)
-			{
-				*MyPointer++ = ICMP_Packet[Temp]|(ICMP_Packet[Temp+1]<<8);
-				if((unsigned int)MyPointer > 0x60005FFC) MyPointer = (unsigned int*)0x60004000;
-			}
-    }
+        if((Dt->Length & 0x0001) == 1)
+        {
+                ICMP_Packet[Dt->Length - 4] = Dt->Data[Dt->Length - 4];
+                for(Temp=0;Temp<Dt->Length - 3;Temp+=2)
+				{
+					*MyPointer++ = ICMP_Packet[Temp]|(ICMP_Packet[Temp+1]<<8);
+					if((unsigned int)MyPointer > 0x60005FFC) MyPointer = (unsigned int*)0x60004000;
+				}
+        }
+        else
+        {
+                for(Temp=0;Temp<Dt->Length - 4;Temp+=2)
+				{
+					*MyPointer++ = ICMP_Packet[Temp]|(ICMP_Packet[Temp+1]<<8);
+					if((unsigned int)MyPointer > 0x60005FFC) MyPointer = (unsigned int*)0x60004000;
+				}
+        }
 //Закончили формировать ICMP-пакет
 
-    Write_Tx_Descriptor(Dt->Length-4,&TxCurrentDesc);     //74 bytes
+        Write_Tx_Descriptor(Dt->Length-4,&TxCurrentDesc);     //74 bytes
 
 		TxCurrentDesc.TxCurrentDescriptor++;
 		TxCurrentDesc.Number++;
@@ -274,8 +299,9 @@ int Answear_ICMP(_ethernet_packet* Dt, unsigned char* ICMP_Packet)
 #if PRINTSTATUSON
 		Packet.CounterTxPacket++;
 #endif	//PRINTSTATUSON
-	}
-	return 0;
+
+        return 0;
+	
 }
 
 
@@ -284,25 +310,8 @@ int Answear_ICMP(_ethernet_packet* Dt, unsigned char* ICMP_Packet)
 //возвращает 0
 int Answear_ARP(_ethernet_packet* Dt)
 {
-	Receive_IP[0] = Dt->Data[38];
-  Receive_IP[1] = Dt->Data[39];
-  Receive_IP[2] = Dt->Data[40];
-  Receive_IP[3] = Dt->Data[41];
-
-  if( (Receive_IP[0] == My_IP[0])&&(Receive_IP[1] == My_IP[1])&&(Receive_IP[2] == My_IP[2])&&(Receive_IP[3] == My_IP[3]))         //полное совпадение IP в пакете и нашего. Надо отвечать
-  {
-		SET_LED3(); //LED3 - Принят ARP пакет с нашим IP
-		Dt->Remote_IP[0] = Dt->Data[28];
-    Dt->Remote_IP[1] = Dt->Data[29];
-    Dt->Remote_IP[2] = Dt->Data[30];
-    Dt->Remote_IP[3] = Dt->Data[31];
-    Dt->Remote_MAC[0] = Dt->Data[22];
-    Dt->Remote_MAC[1] = Dt->Data[23];
-    Dt->Remote_MAC[2] = Dt->Data[24];
-    Dt->Remote_MAC[3] = Dt->Data[25];
-    Dt->Remote_MAC[4] = Dt->Data[26];
-    Dt->Remote_MAC[5] = Dt->Data[27];
-
+	
+SET_LED3();
 		unsigned char Send[42];
     unsigned short Temp;
 		unsigned int* MyPointer;
@@ -393,7 +402,7 @@ int Answear_ARP(_ethernet_packet* Dt)
 #if PRINTSTATUSON
 		Packet.CounterTxPacket++;
 #endif	//PRINTSTATUSON
-	}
+	
 	return 0;
 }
 		

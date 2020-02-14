@@ -9,7 +9,7 @@ LED1 - Включился генератор и порты ввода-вывод
 LED2 - Принят пакет с нашим или широковещательным адресом
 LED3 - Принят ARP пакет с нашим IP
 LED4 - Получили IP-пакет с нашим IP адресом и корректной чек-суммой
-LED5 - Принят ICMP с корректной чек-суммой
+LED5 - Принят ICMP-пакет с корректной чек-суммой
 */
 
 
@@ -31,7 +31,7 @@ int main()
 	Initialize_5600VG1U_parallel();
 //	Initialize_ethernet();
 	#ifdef TEST
-	MDR_PORTD->RXTX = (1<<11)|(MDR_PORTD->RXTX & 0xFFE0);
+	
 		
 	if(get_sample_reg() == 0x5F4E)
 	{
