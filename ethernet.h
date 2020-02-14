@@ -6,6 +6,7 @@
 #ifndef _ETHERNET_H_
 #define _ETHERNET_H_
 #include "5600VG1U_pbus.h"
+#include "main.h" // для светодиодов. потом отключить
 
 void Polling_Ethernet(void);
 
