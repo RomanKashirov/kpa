@@ -23,7 +23,7 @@ int main()
 	Initialize_CLK(); 
 	Initialize_GPIO();
 	Initialize_ExtBus();
-	Initialize_5600VG1U_parallel();
+	Initialize_5600VG1U_pbus();
 	
 #ifdef TEST_MODE // Идет проверка правильной инициализации 5600ВГ1У
 	if(get_sample_reg() == 0x5F4E)

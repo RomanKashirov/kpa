@@ -29,18 +29,18 @@ _rx_current_descriptor RxCurrentDesc;	//экземпляр структуры _r
 										 
 _ethernet* MyEth;
 void EthCfg(void);  //функция конфигурирования контроллера 5600ВГ1У
-void InitTxDescriptor(void);						// функция инициализации дескрипторов отправляемых пакетов
-void InitRxDescriptor(void);						// функция инициализации дескрипторов принимаемых пакетов
-void Reset_5600VG1U(void);
+void InitTxDescriptor(void);	// функция инициализации дескрипторов отправляемых пакетов
+void InitRxDescriptor(void);	// функция инициализации дескрипторов принимаемых пакетов
+void Reset_5600VG1U(void);	// функция сброса 5600ВГ1У через nRST-пин
+
 
 int get_sample_reg(void)
 {
 	return Ethernet->MAC_ADDR_H;
 }
 
-void Initialize_5600VG1U_parallel(void)
+void Initialize_5600VG1U_pbus(void)
 {
-	//MDR_PORTB->RXTX = (1<<11)|(MDR_PORTB->RXTX & 0xFFE0); // Снятие сброса
 	MyEth = Ethernet;
 	EthCfg();
 	InitTxDescriptor();	
@@ -75,7 +75,7 @@ void Reset_5600VG1U()
 {
   unsigned short a;
 	MDR_PORTB->RXTX &= ~((1<<11)|0x001F); // Сброс PORTB11 для подачи nRST на 5600ВГ1У
-	for(a=0;a<1000;a++){}  // Минимальная длительность сигнала сброса 100 нс. TODO узнать какая сейчас задержка?
+	for(a=0; a<1000; a++){}  // Минимальная длительность сигнала сброса 100 нс. TODO узнать какая сейчас задержка?
 	MDR_PORTB->RXTX = (1<<11)|(MDR_PORTB->RXTX	& 0xFFE0); // Установка PORTB11 для снятия nRST
 }
 
@@ -144,10 +144,10 @@ void InitRxDescriptor()
 //--------------------------------------------------------------------------------------
 unsigned short Read_Rx_Descriptor(_rx_descriptor* RxDesc)
 {
-		unsigned int* RDescPointer;
-		RDescPointer = (unsigned int*)RxDesc->StartAddress;
-        if( (*RDescPointer & 0x8000) == 0x8000) return 1;	
-        else return 0;                                      
+	unsigned int* RDescPointer;
+	RDescPointer = (unsigned int*)RxDesc->StartAddress;
+	if( (*RDescPointer & 0x8000) == 0x8000) return 1;	
+	else return 0;                                      
 }
 
 //--------------------------------------------------------------------------------------
@@ -157,9 +157,9 @@ unsigned short Read_Rx_Descriptor(_rx_descriptor* RxDesc)
 //--------------------------------------------------------------------------------------
 unsigned short Read_Packet_Length(_rx_descriptor* RxDesc)
 {
-		unsigned int* RDescPointer;
-		RDescPointer = (unsigned int*)(RxDesc->StartAddress + 4);		//получим адрес длины пакета
-        return (unsigned short)(*RDescPointer);       //Temp;
+	unsigned int* RDescPointer;
+	RDescPointer = (unsigned int*)(RxDesc->StartAddress + 4);	//получим адрес длины пакета
+	return (unsigned short)(*RDescPointer);	
 }
 
 
@@ -170,9 +170,10 @@ unsigned short Read_Packet_Length(_rx_descriptor* RxDesc)
 //--------------------------------------------------------------------------------------
 unsigned short Read_Packet_Start_Address(_rx_descriptor* RxDesc)
 {
-        unsigned int* RDescPointer;
-		RDescPointer = (unsigned int*)(RxDesc->StartAddress + 12);	//получим адрес стартового адреса пакета
-        return (unsigned short)(*RDescPointer);
+	unsigned int* RDescPointer;
+	RDescPointer = (unsigned int*)(RxDesc->StartAddress + 12);	//получим адрес стартового адреса пакета
+	return (unsigned short)(*RDescPointer);
+
 }
 
 //--------------------------------------------------------------------------------------
@@ -182,11 +183,11 @@ unsigned short Read_Packet_Start_Address(_rx_descriptor* RxDesc)
 //--------------------------------------------------------------------------------------
 int Ready_Rx_Descriptor(_rx_descriptor* RxDesc)
 {
-		unsigned int* MyDesc;
-		MyDesc = (unsigned int*)(RxDesc->StartAddress);
-		if(RxDesc->LastDesc == 1) *MyDesc = 0xC000;	//установка готовности дескриптора к приему пакета
-		else *MyDesc = 0x8000;						//установка готовности дескриптора к приему пакета
-        return 0;
+	unsigned int* MyDesc;
+	MyDesc = (unsigned int*)(RxDesc->StartAddress);
+	if(RxDesc->LastDesc == 1) *MyDesc = 0xC000;	//установка готовности дескриптора к приему пакета
+	else *MyDesc = 0x8000;						//установка готовности дескриптора к приему пакета
+	return 0;
 }
 
 //Функция для подготовки дескрипторов передатчика к отправке пакетов
@@ -224,8 +225,8 @@ int Write_Tx_Descriptor(unsigned short PacketLen, _tx_current_descriptor* TxCurr
 //--------------------------------------------------------------------------------------
 unsigned short Read_Tx_Descriptor(_tx_descriptor* TxDesc)
 {
-		unsigned int* MyDesc;
-		MyDesc = (unsigned int*)(TxDesc->StartAddress);
-        if((*MyDesc & 0x8000) == 0x8000) return 1;            //пакет не отправлен
-        else return 0;                                              //пакет отправлен
+	unsigned int* MyDesc;
+	MyDesc = (unsigned int*)(TxDesc->StartAddress);
+	if((*MyDesc & 0x8000) == 0x8000) return 1;            //пакет не отправлен
+	else return 0;                                              //пакет отправлен
 }

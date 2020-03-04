@@ -108,11 +108,7 @@ typedef struct
 } _tx_current_descriptor;
 
 
-
-
-
-
-void Initialize_5600VG1U_parallel(void);
+void Initialize_5600VG1U_pbus(void);
 unsigned short Read_Rx_Descriptor(_rx_descriptor* RxDesc);
 unsigned short Read_Packet_Length(_rx_descriptor* RxDesc);
 unsigned short Read_Packet_Start_Address(_rx_descriptor* RxDesc);
