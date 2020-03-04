@@ -108,12 +108,24 @@ void Initialize_GPIO(void)
 	//Настройка вывода сброса 5600ВГ1У - nRST на PB11
 //	MDR_PORTB->RXTX &= ~((1<<11)|0x001F); // Сброс
  
-//	MDR_PORTB->OE |= (1<<11);  //PB11 - выход
-//	MDR_PORTB->FUNC &= 0xFF3FFFFF; //PB11 - порт ввода-вывода
-//	MDR_PORTB->ANALOG |= (1<<11); //Цифровой режим работы вывода PB11
-	MDR_PORTB->PWR &= 0xFF3FFFFF;
-//	MDR_PORTB->PWR |= 0x400000;
-//	MDR_PORTB->RXTX = (1<<11)|(MDR_PORTB->RXTX & 0xFFE0);
+	MDR_PORTB->OE |= (1<<11);  //PB11 - выход
+	MDR_PORTB->FUNC &= 0xFF3FFFFF; //PB11 - порт ввода-вывода
+	MDR_PORTB->ANALOG |= (1<<11); //Цифровой режим работы вывода PB11
+//	MDR_PORTB->PWR &= 0xFF3FFFFF;
+	MDR_PORTB->PWR |= 0x400000;
+	MDR_PORTB->PD |= (1<<11);
+	MDR_PORTB->RXTX = (1<<11)|(MDR_PORTB->RXTX & 0xFFE0);
+
+
+
+//Установка 11 and 12 битов PORTB (TODO узнать, зачем 11 (это сброс) и почему управляем 12 вручную)
+//	MDR_PORTB->RXTX = (1<<11)|(MDR_PORTB->RXTX & 0xFFE0); //В ножки JTAG нельзя писать единицы, при записи в порт всегда делайте маску и сбрасывайте все биты JTAG в ноль
+//	MDR_PORTB->OE |= (1<<11);  //PORTB_11,PORTB_12, PORTB_13, PORTB_15 - Выходы
+//	MDR_PORTB->PWR &= 0x400000;
+//	MDR_PORTB->ANALOG = 0x800;
+	
+//	MDR_PORTB->FUNC = 0xA8000000; //PORTB_13 - PORTF_15: альтернативная функция, PORTB_11, PORTB_12 - порты ввода-вывода
+
 	
 #if defined _1986_EVBRD_
 //Настройка выбора ИМС 5600ВГ1У - CS на PE28

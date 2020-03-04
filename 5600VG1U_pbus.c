@@ -31,7 +31,7 @@ _ethernet* MyEth;
 void EthCfg(void);  //функция конфигурирования контроллера 5600ВГ1У
 void InitTxDescriptor(void);						// функция инициализации дескрипторов отправляемых пакетов
 void InitRxDescriptor(void);						// функция инициализации дескрипторов принимаемых пакетов
-
+void Reset_5600VG1U(void);
 
 int get_sample_reg(void)
 {
@@ -54,6 +54,7 @@ void Initialize_5600VG1U_parallel(void)
 //--------------------------------------------------------------------------------------
 void EthCfg()
 {
+	Reset_5600VG1U();
 	Ethernet->GCTRL = 0x8000;	//Reset 5600VG1U        
 	for(int i=0;i<1000;i++){}		//Little delay
 	Ethernet->GCTRL = 0x4382;						   	
@@ -66,6 +67,19 @@ void EthCfg()
   Ethernet->MAC_ADDR_H = 0x5F4E;
   Ethernet->PHY_CTRL = 0x31D0;
 }
+
+
+
+//функция сброса контроллера 5600ВГ1У
+void Reset_5600VG1U()
+{
+  unsigned short a;
+	MDR_PORTB->RXTX &= ~((1<<11)|0x001F); // Сброс PORTB11 для подачи nRST на 5600ВГ1У
+	for(a=0;a<1000;a++){}  // Минимальная длительность сигнала сброса 100 нс. TODO узнать какая сейчас задержка?
+	MDR_PORTB->RXTX = (1<<11)|(MDR_PORTB->RXTX	& 0xFFE0); // Установка PORTB11 для снятия nRST
+}
+
+
 
 //--------------------------------------------------------------------------------------
 //Функция для инициализации дескрипторов передаваемых пакетов
