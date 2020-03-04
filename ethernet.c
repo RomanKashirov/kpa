@@ -60,8 +60,10 @@ void Polling_Ethernet(void)
 {
 	               if(Read_Rx_Descriptor(RxCurrentDesc.RxCurrentDescriptor) == 0) //проверка наличия принятого пакета
                 {
-                
+									#ifdef TEST_MODE
+
 									SET_LED2();
+									#endif
 
                         Packet.Length = Read_Packet_Length(RxCurrentDesc.RxCurrentDescriptor);
                         Packet.Address = Read_Packet_Start_Address(RxCurrentDesc.RxCurrentDescriptor);
@@ -263,7 +265,9 @@ void Handle_IP(_ethernet_packet* Dt)
 
   if((Receive_IP[0] == My_IP[0])&&(Receive_IP[1] == My_IP[1])&&(Receive_IP[2] == My_IP[2])&&(Receive_IP[3] == My_IP[3]))  //получили IP-пакет с нашим IP адресом
   {
+		#ifdef TEST_MODE
 	SET_LED4();
+		#endif
   int Temp = CheckSum_IP(Dt);
   if(Temp == ((Dt->Data[24] << 8)&0xFF00|Dt->Data[25]))  //если контрольная сумма IP-протокола пакета и вычисленная совпадают, то работаем дальше, иначе откидываем пакет
   {
@@ -287,7 +291,9 @@ void Handle_IP(_ethernet_packet* Dt)
   Temp = CheckSum_ICMP(Dt);
   if(Temp == ((Dt->Data[36] << 8)&0xFF00|Dt->Data[37]))	//проверка совпадения контрольной суммы ICMP-пакета и вычисленной
   {
+		#ifdef TEST_MODE_MODE_MODE
 	SET_LED5();
+		#endif
   Answear_ICMP(Dt, ICMP_Packet);
   }
 }
@@ -328,8 +334,9 @@ void Handle_ARP(_ethernet_packet* Dt)
 //возвращает 0
 int Answear_ARP(_ethernet_packet* Dt)
 {
-	
+#ifdef TEST_MODE
 SET_LED3();
+	#endif
 		unsigned char Send[42];
     unsigned short Temp;
 		unsigned int* MyPointer;

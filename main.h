@@ -11,8 +11,7 @@
 #include "ethernet.h"
 #include <MDR32F9Qx_port.h>
 
-//#define _1986_EVBRD_
-//#define _6115_160_
+
 #define SET_LED1() MDR_PORTD->RXTX = (1<<10)|(MDR_PORTD->RXTX & 0xFFE0)
 #define RESET_LED1() MDR_PORTD->RXTX &= ~((1<<10)|0x001F);
 

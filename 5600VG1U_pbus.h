@@ -120,7 +120,7 @@ int Ready_Rx_Descriptor(_rx_descriptor* RxDesc);
 int Write_Tx_Descriptor(unsigned short PacketLen, _tx_current_descriptor* TxCurrentDesc);
 unsigned short Read_Tx_Descriptor(_tx_descriptor* TxDesc);
 
-#ifdef TEST
+#ifdef TEST_MODE
 		int get_sample_reg(void);
 #endif
 
