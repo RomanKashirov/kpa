@@ -31,7 +31,7 @@ void Initialize_CLK(void)
 	/*Выбор источника для CPU_C1 – HSE, выбор источника для CPU_C2 – PLLCPUo, выбор делителя CPU_C3 = CPU_C2,
 	выбор источника для HCLK – CPU_C3*/
 	MDR_RST_CLK->CPU_CLOCK = 0x00000106;
-	MDR_RST_CLK->PER_CLOCK |= (1<<25)|(1<<21)|(1<<22)|(1<<23)|(1<<24)|(1<<29)|(1<<30); // Разрешение тактирования портов A, B, C, D, E, F, EXT_BUS_CNTRL
+	MDR_RST_CLK->PER_CLOCK |= (1<<25)|(1<<21)|(1<<22)|(1<<23)|(1<<24)|(1<<29)|(1<<30)|(1<<14); // Разрешение тактирования портов A, B, C, D, E, F, EXT_BUS_CNTRL, TIMER1
 }
 
 

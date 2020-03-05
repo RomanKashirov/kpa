@@ -24,16 +24,20 @@ int main()
 	Initialize_GPIO();
 	Initialize_ExtBus();
 	Initialize_5600VG1U_pbus();
+	Initialize_adc_vt();
+	Initialize_timer_100ms();
+	
 	
 #ifdef TEST_MODE // Идет проверка правильной инициализации 5600ВГ1У
 	if(get_sample_reg() == 0x5F4E)
 	{
-		SET_LED1(); //LED1 - Включился генератор и порты ввода-вывода Установлена связь с 5600ВГ1У
+//		SET_LED1(); //LED1 - Включился генератор и порты ввода-вывода Установлена связь с 5600ВГ1У
 	}
 #endif
 	
 	while(1)
 	{
 		Polling_Ethernet();
+		
 	}
 }

@@ -10,6 +10,8 @@
 #include "5600VG1U_pbus.h"
 #include "ethernet.h"
 #include <MDR32F9Qx_port.h>
+#include "adcvt.h"
+#include "timers.h"
 
 
 #define SET_LED1() MDR_PORTD->RXTX = (1<<10)|(MDR_PORTD->RXTX & 0xFFE0)
