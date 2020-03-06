@@ -4,6 +4,8 @@
 *************************************************************************/
 #include "timers.h"
 
+extern unsigned int Acvt_read_channels;
+
 typedef enum {ON, OFF} STATUS;
 
 STATUS Led_status = OFF;
@@ -43,7 +45,7 @@ void Timer1_IRQHandler()
 			RESET_LED1();
 			Led_status = OFF;
 		}
-		Get_adcvt_data();
+		Get_adcvt_data(Acvt_read_channels);
 //Очистка флага прерывания (это необходимо делать в конце)
 	TIMER_ClearITPendingBit(MDR_TIMER1, TIMER_STATUS_CNT_ZERO);
 	}

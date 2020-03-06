@@ -5,8 +5,9 @@
 #ifndef _ADCVT_H_
 #define _ADCVT_H_
 
+#define ADCVT_BUFFER_SIZE 32
 
-typedef enum  {OBP1, RBP1, OBP2, RBP2, OKP, RKP} Channel_Adc_VT;
+typedef enum  {OBP1 = 0, RBP1 = 1, OBP2 = 2, RBP2 = 3, OKP = 4, RKP = 5} Channel_Adc_VT;
 
 
 //Структура для хранения результатов измерения
@@ -20,14 +21,14 @@ typedef struct
 //Структура для хранения кольцевого буфера с данными
 typedef struct
 {
-	measure_data data_buf[16];	//буфер структур
+	measure_data data_buf[ADCVT_BUFFER_SIZE];	//буфер структур
 	unsigned int head;					//голова
 	unsigned int tail;			//хвост
 } measure_buf;
 
-unsigned int Get_angle(Channel_Adc_VT ch);
 
-void Get_adcvt_data(void);
+
+void Get_adcvt_data(unsigned int channels);
 
 void Initialize_adc_vt(void);
 
