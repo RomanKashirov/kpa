@@ -19,11 +19,11 @@ int port_sample;
 #endif
 
 unsigned int CH1 = 1;
-unsigned int CH2 = 1;
-unsigned int CH3 = 1;
-unsigned int CH4 = 1;
-unsigned int CH5 = 1;
-unsigned int CH6 = 1;
+unsigned int CH2 = 0;
+unsigned int CH3 = 0;
+unsigned int CH4 = 0;
+unsigned int CH5 = 0;
+unsigned int CH6 = 0;
 unsigned int Adcvt_read_channels;
 
 
@@ -38,7 +38,7 @@ int main()
 	
 	Adcvt_read_channels = (CH1<<Ch1)|(CH2<<Ch2)|(CH3<<Ch3)|(CH4<<Ch4)|(CH5<<Ch5)|(CH6<<Ch6); // Считываемые каналы АЦПВТ
 	
-#ifdef TEST_MODE // Идет проверка правильной инициализации 5600ВГ1У
+	#ifdef TEST_MODE // Идет проверка правильной инициализации 5600ВГ1У
 	if(get_sample_reg() == 0x5F4E)
 	{
 //		SET_LED1(); //LED1 - Включился генератор и порты ввода-вывода Установлена связь с 5600ВГ1У
