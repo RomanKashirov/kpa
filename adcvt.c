@@ -34,34 +34,34 @@ void Get_channel_data(Channel_Adc_VT ch)
 // Считывание данных из активных каналов АЦПВТ
 void Get_adcvt_data(unsigned int channels)
 {
-	if(channels & (1<<OBP1))
+	if(channels & (1<<Ch1))
 	{
-		Get_channel_data(OBP1);
+		Get_channel_data(Ch1);
 	}
 	
-	if(channels & (1<<RBP1))
+	if(channels & (1<<Ch2))
 	{
-		Get_channel_data(RBP1);
+		Get_channel_data(Ch2);
 	}
 	
-	if(channels & (1<<OBP2))
+	if(channels & (1<<Ch3))
 	{
-		Get_channel_data(OBP2);
+		Get_channel_data(Ch3);
 	}
 	
-	if(channels & (1<<RBP2))
+	if(channels & (1<<Ch4))
 	{
-		Get_channel_data(RBP2);
+		Get_channel_data(Ch4);
 	}
 		
-	if(channels & (1<<OKP))
+	if(channels & (1<<Ch5))
 	{
-		Get_channel_data(OKP);
+		Get_channel_data(Ch5);
 	}
 	
-	if(channels & (1<<RKP))
+	if(channels & (1<<Ch6))
 	{
-		Get_channel_data(RKP);
+		Get_channel_data(Ch6);
 	}
 }
 

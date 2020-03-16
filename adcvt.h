@@ -7,7 +7,7 @@
 
 #define ADCVT_BUFFER_SIZE 32
 
-typedef enum  {OBP1 = 0, RBP1 = 1, OBP2 = 2, RBP2 = 3, OKP = 4, RKP = 5} Channel_Adc_VT;
+typedef enum  {Ch1 = 0, Ch2 = 1, Ch3 = 2, Ch4 = 3, Ch5 = 4, Ch6 = 5} Channel_Adc_VT;
 
 
 //Структура для хранения результатов измерения

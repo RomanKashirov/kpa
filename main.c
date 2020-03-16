@@ -24,7 +24,7 @@ unsigned int CH3 = 1;
 unsigned int CH4 = 1;
 unsigned int CH5 = 1;
 unsigned int CH6 = 1;
-unsigned int Acvt_read_channels;
+unsigned int Adcvt_read_channels;
 
 
 int main()
@@ -36,7 +36,7 @@ int main()
 	Initialize_adc_vt();
 	Initialize_timer_100ms();
 	
-	Acvt_read_channels = (CH1<<OBP1)|(CH2<<RBP1)|(CH3<<OBP2)|(CH4<<RBP2)|(CH5<<OKP)|(CH6<<RKP); // Считываемые каналы АЦПВТ
+	Adcvt_read_channels = (CH1<<Ch1)|(CH2<<Ch2)|(CH3<<Ch3)|(CH4<<Ch4)|(CH5<<Ch5)|(CH6<<Ch6); // Считываемые каналы АЦПВТ
 	
 #ifdef TEST_MODE // Идет проверка правильной инициализации 5600ВГ1У
 	if(get_sample_reg() == 0x5F4E)
