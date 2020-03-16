@@ -52,6 +52,8 @@ unsigned short CheckSum_ICMP(_ethernet_packet* Dt);
 int Answear_ICMP(_ethernet_packet* Dt, unsigned char* );
 void Handle_ARP(_ethernet_packet* Dt);
 void Handle_IP(_ethernet_packet* Dt);
+void Handle_ICMP(_ethernet_packet* Dt, unsigned char* ICMP_Packet);
+void Handle_UDP(_ethernet_packet* Dt);
 
 
 void Polling_Ethernet(void)
@@ -118,124 +120,7 @@ void Read_Packet(_ethernet_packet* Dt)
 }
 
 
-//--------------------------------------------------------------------------------------
-//Функция для формирования ответа на ICMP-запрос
-//Параметр:	указатель на принятый Ethernet-пакет
-//Возвращает 0
-//--------------------------------------------------------------------------------------
-int Answear_ICMP(_ethernet_packet* Dt, unsigned char* ICMP_Packet)
-{
-	unsigned short Temp;
-	unsigned int* MyPointer;
 
-	while(Read_Tx_Descriptor(TxCurrentDesc.TxCurrentDescriptor) != 0)
-	{
-		TxCurrentDesc.TxCurrentDescriptor++;
-		TxCurrentDesc.Number++;
-		if(TxCurrentDesc.Number == NUMTXDESCRIPTOR)
-		{
-			TxCurrentDesc.Number = 0;
-			TxCurrentDesc.TxCurrentDescriptor = ATxDescriptor;
-		}
-	}
-		
-	//Remote MAC-Address
-	ICMP_Packet[0] = Dt->Remote_MAC[0];
-	ICMP_Packet[1] = Dt->Remote_MAC[1];
-	ICMP_Packet[2] = Dt->Remote_MAC[2];
-	ICMP_Packet[3] = Dt->Remote_MAC[3];
-	ICMP_Packet[4] = Dt->Remote_MAC[4];
-	ICMP_Packet[5] = Dt->Remote_MAC[5];
-
-	//My MAC-Address
-	ICMP_Packet[6] = My_MAC[0];
-	ICMP_Packet[7] = My_MAC[1];
-	ICMP_Packet[8] = My_MAC[2];
-	ICMP_Packet[9] = My_MAC[3];
-	ICMP_Packet[10] = My_MAC[4];
-	ICMP_Packet[11] = My_MAC[5];
-
-	//IP-protocol
-	ICMP_Packet[12] = 0x08;
-	ICMP_Packet[13] = 0x00;
-	//Закнчили формировать Eth2-пакет
-
-	//Формируем IP-пакет
-	//Field of IP-protocol
-	for(Temp = 14; Temp < 24; Temp++)
-	{
-		ICMP_Packet[Temp] = Dt->Data[Temp];
-	}
-	ICMP_Packet[26] = Dt->Data[30];
-	ICMP_Packet[27] = Dt->Data[31];
-	ICMP_Packet[28] = Dt->Data[32];
-	ICMP_Packet[29] = Dt->Data[33];
-	//Remote IP
-	ICMP_Packet[30] = Dt->Data[26];
-	ICMP_Packet[31] = Dt->Data[27];
-	ICMP_Packet[32] = Dt->Data[28];
-	ICMP_Packet[33] = Dt->Data[29];
-
-	Temp = CheckSum_IP(Dt);
-
-	//IP CheckSum
-	ICMP_Packet[24] = (unsigned char)(Temp >> 8);
-	ICMP_Packet[25] = (unsigned char)Temp;
-
-	//Закнчили формировать IP-пакет
-	//Формируем ICMP-пакет
-	ICMP_Packet[34] = 0x00; //Echo reply
-	ICMP_Packet[35] = 0x00;
-
-	Dt->Data[34] = 0x00;
-	Dt->Data[35] = 0x00;
-
-	Temp = CheckSum_ICMP(Dt);
-	ICMP_Packet[36] = (unsigned char)(Temp >> 8);
-	ICMP_Packet[37] = (unsigned char)Temp;
-
-	for(Temp = 38; Temp < Dt->Length - 4; Temp++)
-	{
-		ICMP_Packet[Temp] = Dt->Data[Temp];
-	}
-
-	MyPointer = (unsigned int*)TxCurrentDesc.FirstEmptyWord;
-
-	if((Dt->Length & 0x0001) == 1)
-	{
-		ICMP_Packet[Dt->Length - 4] = Dt->Data[Dt->Length - 4];
-		for(Temp=0;Temp<Dt->Length - 3;Temp+=2)
-		{
-			*MyPointer++ = ICMP_Packet[Temp]|(ICMP_Packet[Temp+1]<<8);
-			if((unsigned int)MyPointer > 0x60005FFC) MyPointer = (unsigned int*)0x60004000;
-		}
-	}
-	else
-	{
-		for(Temp=0;Temp<Dt->Length - 4;Temp+=2)
-		{
-			*MyPointer++ = ICMP_Packet[Temp]|(ICMP_Packet[Temp+1]<<8);
-			if((unsigned int)MyPointer > 0x60005FFC) MyPointer = (unsigned int*)0x60004000;
-		}
-	}
-//Закончили формировать ICMP-пакет
-
-	Write_Tx_Descriptor(Dt->Length-4,&TxCurrentDesc);     //74 bytes
-
-	TxCurrentDesc.TxCurrentDescriptor++;
-	TxCurrentDesc.Number++;
-	if(TxCurrentDesc.Number == NUMTXDESCRIPTOR)
-	{
-		TxCurrentDesc.Number = 0;
-		TxCurrentDesc.TxCurrentDescriptor = ATxDescriptor;
-	}
-
-#if PRINTSTATUSON
-		Packet.CounterTxPacket++;
-#endif	//PRINTSTATUSON
-
-	return 0;
-}
 
 
 void Handle_IP(_ethernet_packet* Dt)
@@ -265,8 +150,36 @@ void Handle_IP(_ethernet_packet* Dt)
 			Dt->Remote_MAC[4] = Dt->Data[10];
 			Dt->Remote_MAC[5] = Dt->Data[11];
 
-  //проверить следующий протокол (ICMP)
-			if(Dt->Data[23] == 0x01)     //далее следует ICMP-протокол
+  //проверить следующий протокол 
+			
+			switch(Dt->Data[ip_proto])
+			{
+				case 0x01:
+						Handle_ICMP(Dt, ICMP_Packet);
+				break;
+				
+				case 0x11:
+					Handle_UDP(Dt);
+				break;
+				
+				default:
+					break;
+			}
+		}
+	}
+}
+
+
+
+//--------------------------------------------------------------------------------------
+//Функция для формирования ответа на ICMP-запрос
+//Параметр:	указатель на принятый Ethernet-пакет
+//Возвращает 0
+//--------------------------------------------------------------------------------------
+void Handle_ICMP(_ethernet_packet* Dt, unsigned char* ICMP_Packet)
+{
+	int Temp;
+	if(Dt->Data[ip_proto] == 0x01)     //далее следует ICMP-протокол
 			{																			
 				if(Dt->Data[34] == 0x08) //приняли echo request
 				{
@@ -276,12 +189,122 @@ void Handle_IP(_ethernet_packet* Dt)
 #ifdef TEST_MODE
 						SET_LED5();
 #endif
-						Answear_ICMP(Dt, ICMP_Packet);
+						unsigned int* MyPointer;
+
+						while(Read_Tx_Descriptor(TxCurrentDesc.TxCurrentDescriptor) != 0)
+						{
+							TxCurrentDesc.TxCurrentDescriptor++;
+							TxCurrentDesc.Number++;
+							if(TxCurrentDesc.Number == NUMTXDESCRIPTOR)
+							{
+								TxCurrentDesc.Number = 0;
+								TxCurrentDesc.TxCurrentDescriptor = ATxDescriptor;
+							}
+						}
+
+						//Remote MAC-Address
+						ICMP_Packet[0] = Dt->Remote_MAC[0];
+						ICMP_Packet[1] = Dt->Remote_MAC[1];
+						ICMP_Packet[2] = Dt->Remote_MAC[2];
+						ICMP_Packet[3] = Dt->Remote_MAC[3];
+						ICMP_Packet[4] = Dt->Remote_MAC[4];
+						ICMP_Packet[5] = Dt->Remote_MAC[5];
+
+						//My MAC-Address
+						ICMP_Packet[6] = My_MAC[0];
+						ICMP_Packet[7] = My_MAC[1];
+						ICMP_Packet[8] = My_MAC[2];
+						ICMP_Packet[9] = My_MAC[3];
+						ICMP_Packet[10] = My_MAC[4];
+						ICMP_Packet[11] = My_MAC[5];
+
+						//IP-protocol
+						ICMP_Packet[12] = 0x08;
+						ICMP_Packet[13] = 0x00;
+						//Закнчили формировать Eth2-пакет
+
+						//Формируем IP-пакет
+						//Field of IP-protocol
+						for(Temp = 14; Temp < 24; Temp++)
+						{
+							ICMP_Packet[Temp] = Dt->Data[Temp];
+						}
+						ICMP_Packet[26] = Dt->Data[30];
+						ICMP_Packet[27] = Dt->Data[31];
+						ICMP_Packet[28] = Dt->Data[32];
+						ICMP_Packet[29] = Dt->Data[33];
+						//Remote IP
+						ICMP_Packet[30] = Dt->Data[26];
+						ICMP_Packet[31] = Dt->Data[27];
+						ICMP_Packet[32] = Dt->Data[28];
+						ICMP_Packet[33] = Dt->Data[29];
+
+						Temp = CheckSum_IP(Dt);
+
+						//IP CheckSum
+						ICMP_Packet[24] = (unsigned char)(Temp >> 8);
+						ICMP_Packet[25] = (unsigned char)Temp;
+
+						//Закнчили формировать IP-пакет
+						//Формируем ICMP-пакет
+						ICMP_Packet[34] = 0x00; //Echo reply
+						ICMP_Packet[35] = 0x00;
+
+						Dt->Data[34] = 0x00;
+						Dt->Data[35] = 0x00;
+
+						Temp = CheckSum_ICMP(Dt);
+						ICMP_Packet[36] = (unsigned char)(Temp >> 8);
+						ICMP_Packet[37] = (unsigned char)Temp;
+
+						for(Temp = 38; Temp < Dt->Length - 4; Temp++)
+						{
+							ICMP_Packet[Temp] = Dt->Data[Temp];
+						}
+
+						MyPointer = (unsigned int*)TxCurrentDesc.FirstEmptyWord;
+
+						if((Dt->Length & 0x0001) == 1)
+						{
+							ICMP_Packet[Dt->Length - 4] = Dt->Data[Dt->Length - 4];
+							for(Temp=0;Temp<Dt->Length - 3;Temp+=2)
+							{
+								*MyPointer++ = ICMP_Packet[Temp]|(ICMP_Packet[Temp+1]<<8);
+								if((unsigned int)MyPointer > 0x60005FFC) MyPointer = (unsigned int*)0x60004000;
+							}
+						}
+						else
+						{
+							for(Temp=0;Temp<Dt->Length - 4;Temp+=2)
+							{
+								*MyPointer++ = ICMP_Packet[Temp]|(ICMP_Packet[Temp+1]<<8);
+								if((unsigned int)MyPointer > 0x60005FFC) MyPointer = (unsigned int*)0x60004000;
+							}
+						}
+						//Закончили формировать ICMP-пакет
+
+						Write_Tx_Descriptor(Dt->Length-4,&TxCurrentDesc);     //74 bytes
+
+						TxCurrentDesc.TxCurrentDescriptor++;
+						TxCurrentDesc.Number++;
+						if(TxCurrentDesc.Number == NUMTXDESCRIPTOR)
+						{
+							TxCurrentDesc.Number = 0;
+							TxCurrentDesc.TxCurrentDescriptor = ATxDescriptor;
+						}
+
+						#if PRINTSTATUSON
+						Packet.CounterTxPacket++;
+						#endif	//PRINTSTATUSON
+
 					}
 				}
 			}
-		}
-	}
+}
+
+void Handle_UDP(_ethernet_packet* Dt)
+{
+	
 }
 
 
