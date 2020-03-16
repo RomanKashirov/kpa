@@ -5,6 +5,7 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
+// Указатель на нулевой адрес
 #ifndef NULL
 #define NULL (void*)0
 #endif
