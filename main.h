@@ -5,6 +5,9 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
+#ifndef NULL
+#define NULL (void*)0
+#endif
 
 #include "config.h"
 #include "5600VG1U_pbus.h"
